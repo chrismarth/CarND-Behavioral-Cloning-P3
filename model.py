@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda
+from keras.layers import Cropping2D, Dense, Flatten, Lambda
+from keras import backend as K
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import cv2
@@ -33,14 +34,14 @@ def generator(samples, steer_correction=0.2, batch_size=32):
                 center_angle = float(batch_sample[3])
                 left_angle = center_angle + steer_correction
                 right_angle = center_angle - steer_correction
-                images.extend(center_image, left_image, right_image)
-                angles.extend(center_angle, left_angle, right_angle)
+                images.extend([center_image, left_image, right_image])
+                angles.extend([center_angle, left_angle, right_angle])
 
             X_train = np.array(images)
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
-# Create the complete set of test samples from the set of CSV data acquisition files
+# Create the complete set of test samples from a set of CSV data acquisition files
 test_cases = ['data/baseline_2laps/']
 test_samples = []
 for test_case in test_cases:
@@ -59,8 +60,8 @@ validation_generator = generator(validation_samples, batch_size=32)
 model = Sequential()
 
 # Pre-processing Layers
-# 1. TODO: Trim top half of image - eliminate the top 60 pixels since this is just background noise
-# 2. TODO: Possibly downsample to a smaller image size
+# 2. TODO: Possibly downsample (maxpool) to a smaller image size
+model.add(Cropping2D(cropping=((60, 0), (0, 0))))
 model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x), input_shape=(160, 320, 3)))
 model.add(Lambda(lambda x: (x / 127.5) - 1.0, input_shape=(160, 320, 1)))
 
@@ -70,9 +71,10 @@ model.add(Dense(1))
 
 # Run backpropagation
 model.compile(loss='mse', optimizer='adam')
-model.fit_generator(train_generator, samples_per_epoch= len(train_samples),
-                    validation_data=validation_generator, nb_val_samples=len(validation_samples),
-                    nb_epoch=5)
+model.fit_generator(train_generator, samples_per_epoch=len(train_samples), validation_data=validation_generator, nb_val_samples=len(validation_samples), nb_epoch=5)
 
 # Save the model so we can use it drive the vehicle
 model.save('model.h5')
+
+# This fixes a bug in Tensorflow related to closing the session
+K.clear_session()
