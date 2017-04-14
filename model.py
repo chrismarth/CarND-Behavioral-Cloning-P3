@@ -67,12 +67,12 @@ model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x)))
 model.add(Lambda(lambda x: (x / 127.5) - 1.0))
 
 # Network setup
-model.add(Flatten(input_shape=(160, 320, 1)))
+model.add(Flatten(input_shape=(100, 320, 1)))
 model.add(Dense(1))
 
 # Run backpropagation
 model.compile(loss='mse', optimizer='adam')
-model.fit_generator(train_generator, steps_per_epoch=math.floor(len(train_samples)/32), validation_data=validation_generator, nb_val_samples=math.floor(len(validation_samples)/32), epochs=5)
+model.fit_generator(train_generator, steps_per_epoch=math.floor(len(train_samples)/32), validation_data=validation_generator, validation_steps=math.floor(len(validation_samples)/32), epochs=5)
 
 # Save the model so we can use it drive the vehicle
 model.save('model.h5')
