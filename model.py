@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
-from keras.layers import Cropping2D, Dense, Flatten, Lambda
+from keras.layers import Cropping2D, Dense, Flatten, Lambda, Conv2D
+from keras.optimizers import Adam
 from keras import backend as K
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -29,9 +30,11 @@ def generator(samples, steer_correction=0.2, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 center_name = batch_sample[7] + 'IMG/' + batch_sample[0].split('/')[-1]
+                left_name = batch_sample[7] + 'IMG/' + batch_sample[1].split('/')[-1]
+                right_name = batch_sample[7] + 'IMG/' + batch_sample[2].split('/')[-1]
                 center_image = cv2.cvtColor(cv2.imread(center_name), cv2.COLOR_BGR2RGB)
-                left_image = cv2.cvtColor(cv2.imread(center_name), cv2.COLOR_BGR2RGB)
-                right_image = cv2.cvtColor(cv2.imread(center_name), cv2.COLOR_BGR2RGB)
+                left_image = cv2.cvtColor(cv2.imread(left_name), cv2.COLOR_BGR2RGB)
+                right_image = cv2.cvtColor(cv2.imread(right_name), cv2.COLOR_BGR2RGB)
                 center_angle = float(batch_sample[3])
                 left_angle = center_angle + steer_correction
                 right_angle = center_angle - steer_correction
@@ -61,17 +64,26 @@ validation_generator = generator(validation_samples, batch_size=32)
 model = Sequential()
 
 # Pre-processing Layers
-# 2. TODO: Possibly downsample (maxpool) to a smaller image size
+# TODO: Possibly downsample (maxpool) to a smaller image size
 model.add(Cropping2D(cropping=((60, 0), (0, 0)), input_shape=(160, 320, 3)))
-model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x)))
+#model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x)))
 model.add(Lambda(lambda x: (x / 127.5) - 1.0))
 
-# Network setup
-model.add(Flatten(input_shape=(100, 320, 1)))
+# Network setup - meant to mimic the Nvidia architecture (not sure about activation functions)
+model.add(Conv2D(24, 5, strides=2, activation="relu"))
+model.add(Conv2D(36, 5, strides=2, activation="relu"))
+model.add(Conv2D(48, 5, strides=2, activation="relu"))
+model.add(Conv2D(64, 3, activation="relu"))
+model.add(Conv2D(64, 3, activation="relu"))
+model.add(Flatten())
+model.add(Dense(100))
+model.add(Dense(50))
+model.add(Dense(10))
 model.add(Dense(1))
 
 # Run backpropagation
-model.compile(loss='mse', optimizer='adam')
+adam = Adam(lr=0.001)
+model.compile(loss='mse', optimizer=adam)
 model.fit_generator(train_generator, steps_per_epoch=math.floor(len(train_samples)/32), validation_data=validation_generator, validation_steps=math.floor(len(validation_samples)/32), epochs=5)
 
 # Save the model so we can use it drive the vehicle
