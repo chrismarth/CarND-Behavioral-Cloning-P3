@@ -1,30 +1,20 @@
 #**Behavioral Cloning** 
 
-##Writeup Template
-
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
 **Behavioral Cloning Project**
 
-The goals / steps of this project are the following:
-* Use the simulator to collect data of good driving behavior
-* Build, a convolution neural network in Keras that predicts steering angles from images
+The goals of this project were the following:
+* Use a simulator to collect data of good driving behavior
+* Build a convolution neural network in Keras that predicts steering angles from images
 * Train and validate the model with a training and validation set
 * Test that the model successfully drives around track one without leaving the road
-* Summarize the results with a written report
-
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[center]: ./examples/center_driving_example.jpg "Example of Center Driving"
+[recovery1]: ./examples/recovery_example.jpg "Example of Recovery Driving"
+[recovery2]: ./examples/recovery_example_2.jpg "Example of Recovery Driving"
+[flipped_before]: ./examples/flipped_before.jpg "Normal Image"
+[flipped_after]: ./examples/flipped_after.jpg "Flipped Image"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -37,8 +27,9 @@ The goals / steps of this project are the following:
 My project includes the following files:
 * model.py containing the script to create and train the model
 * drive.py for driving the car in autonomous mode
-* model.h5 containing a trained convolution neural network 
-* writeup_report.md or writeup_report.pdf summarizing the results
+* model.h5 containing a trained convolution neural network
+* video.mp4 containing a recording of the vehicle driving autonomously in the simulator
+* writeup.md or writeup_report.pdf summarizing the results
 
 ####2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
@@ -52,31 +43,9 @@ The model.py file contains the code for training and saving the convolution neur
 
 ###Model Architecture and Training Strategy
 
-####1. An appropriate model architecture has been employed
+####1. Design Approach and Model Architecture
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
-
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
-
-####2. Attempts to reduce overfitting in the model
-
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
-
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
-
-####3. Model parameter tuning
-
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
-
-####4. Appropriate training data
-
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
-
-For details about how I created the training data, see the next section. 
-
-###Model Architecture and Training Strategy
-
-####1. Solution Design Approach
+The model architecture employed in this 
 
 The overall strategy for deriving a model architecture was to ...
 
@@ -92,32 +61,83 @@ The final step was to run the simulator to see how well the car was driving arou
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
-####2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+| Layer         		|     Description	        					|
+|:----------------------|:----------------------------------------------|
+| Input         		| 160x320x3 RGB image   					    |
+| 2D Cropping      		| 100x320x3 RGB image - top 70 pixels cropped  	|
+| Normalize and Center 	| 32x32x1 Grayscale image   					|
+| Convolution 5x5     	| 2x2 stride, valid padding                  	|
+| RELU					|												|
+| Convolution 5x5     	| 2x2 stride, valid padding 	                |
+| RELU					|												|
+| Convolution 5x5     	| 2x2 stride, valid padding 	                |
+| RELU					|												|
+| Convolution 3x3     	| 1x1 stride, valid padding 	                |
+| RELU					|												|
+| Convolution 3x3     	| 1x1 stride, valid padding 	                |
+| RELU					|												|
+| Flatten       		|                                               |
+| Fully connected		| outputs 100                                   |
+| Fully connected		| outputs 50                                    |
+| Fully connected		| outputs 10                                    |
+| Fully connected		| outputs 1        							    |
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
+The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
 
-![alt text][image1]
+The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+
+####2. Model parameter tuning
+
+The following model parameters were tuned
+
+| Parameter        		    | Tuning    	  		|
+|:--------------------------|:---------------------:|
+| Batch Size                |            32         |
+| Learning Rate             |         0.001         |
+| L/R Steer Angle offset    |           0.5         |
+
+The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
 
 ####3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+The training process was an iterative process, where a baseline training set was first created then augmented based on deficiencies in model performance.
 
-![alt text][image2]
+First, a baseline two lap run of the test course was completed. This run was completed trying to maintain the centerline of the road as best and as smoothly as possible. Data from the center, left, and right cameras was used for this (and all subsequent data collections) and using this data, we trained the model and tested performance in autonomous mode. Subjective observation of the results from this stage showed a definite left-bias. That is, the vehicle seemed to be "hugging" the left side of the road.
+
+An example of an image recorded while peforming baseline centerline training is given here:
+
+![alt text][center]
+
+Second, to address the left-bias the image and steering data from the baseline run was flipped using the numpy fliplr function. The resulting image set was effectively doubled, but now we had data for driving what was effectively a mirror image of the baseline track. This definitely helped to minimize the left bias. Performance on straight road and moderate curves was sufficient, but peformance on sharp curves was not acceptable.
+
+An example of an original image and its flipped counterpart are given here:
+
+![alt text][flipped_before]
+![alt text][flipped_after]
+
+Third, additional data was collected through the sharp corners at the end of the lap on the test track. Three additional passes were made and recorded to add additional data. While performance in autonomous mode improved, it was still not sufficient enough to satisfy requirements.
+
+Fourth, more data was collected on those corners where the vehicle was having trouble staying on the track. Specifically, more extreme recovery maneuvers were recorded to help the model take more significant action when diverging from the center of the road. After adding this data, the vehicle was able to successfully navigate the entire track.
+
+An example of an original image and its flipped counterpart are given here:
+
+![alt text][recovery1]
+![alt text][recovery2]
+
+Finally, once the vehicle was able to successfully navigate the entire track, further refinements to recovery maneuvers were made and added to the baseline training set. It was also at this point that model parameters and network architecture were adjusted to see if performance could be further improved.
+
+
 
 I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+
 
 Then I repeated this process on track two in order to get more data points.
 
 To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
 
-![alt text][image6]
-![alt text][image7]
+
 
 Etc ....
 

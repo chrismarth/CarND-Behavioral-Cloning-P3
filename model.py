@@ -38,27 +38,32 @@ def generator(samples, steer_correction=0.2, batch_size=32):
                 center_angle = float(batch_sample[3])
                 left_angle = center_angle + steer_correction
                 right_angle = center_angle - steer_correction
-                center_image_flipped = np.fliplr(center_image)
-                left_image_flipped = np.fliplr(left_image)
-                right_image_flipped = np.fliplr(right_image)
-                center_angle_flipped = -center_angle
-                left_angle_flipped = -left_angle
-                right_angle_flipped = -right_angle
-                images.extend([center_image, left_image, right_image, center_image_flipped, left_image_flipped, right_image_flipped])
-                angles.extend([center_angle, left_angle, right_angle, center_angle_flipped, left_angle_flipped, right_angle_flipped])
-
+                images.extend([center_image, left_image, right_image])
+                angles.extend([center_angle, left_angle, right_angle])
+                if batch_sample[8]:
+                    center_image_flipped = np.fliplr(center_image)
+                    left_image_flipped = np.fliplr(left_image)
+                    right_image_flipped = np.fliplr(right_image)
+                    center_angle_flipped = -center_angle
+                    left_angle_flipped = -left_angle
+                    right_angle_flipped = -right_angle
+                    images.extend([center_image_flipped, left_image_flipped, right_image_flipped])
+                    angles.extend([center_angle_flipped, left_angle_flipped, right_angle_flipped])
             X_train = np.array(images)
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
 # Create the complete set of test samples from a set of CSV data acquisition files
-test_cases = ['data/baseline_2laps/', 'data/extra_corners/', 'data/recovery/', 'data/recovery2/', 'data/recovery3/']
+test_cases = [('data/baseline_2laps/', True), ('data/extra_corners/', True), ('data/recovery/', True), ('data/recovery2/', False), ('data/recovery3/', False)]
 test_samples = []
 for test_case in test_cases:
-    with open(test_case + 'driving_log.csv') as csvfile:
+    test_case_dir = test_case[0]
+    test_case_flip = test_case[1]
+    with open(test_case_dir + 'driving_log.csv') as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
-            line.append(test_case)
+            line.append(test_case_dir)
+            line.append(test_case_flip)
             test_samples.append(line)
 
 # Create training and validation sets and create generators that iterates through each sets
@@ -70,7 +75,6 @@ validation_generator = generator(validation_samples, steer_correction=0.5, batch
 model = Sequential()
 
 # Pre-processing Layers
-# TODO: Possibly downsample (maxpool) to a smaller image size
 model.add(Cropping2D(cropping=((60, 0), (0, 0)), input_shape=(160, 320, 3)))
 #model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x)))
 model.add(Lambda(lambda x: (x / 127.5) - 1.0))
