@@ -38,15 +38,21 @@ def generator(samples, steer_correction=0.2, batch_size=32):
                 center_angle = float(batch_sample[3])
                 left_angle = center_angle + steer_correction
                 right_angle = center_angle - steer_correction
-                images.extend([center_image, left_image, right_image])
-                angles.extend([center_angle, left_angle, right_angle])
+                center_image_flipped = np.fliplr(center_image)
+                left_image_flipped = np.fliplr(left_image)
+                right_image_flipped = np.fliplr(right_image)
+                center_angle_flipped = -center_angle
+                left_angle_flipped = -left_angle
+                right_angle_flipped = -right_angle
+                images.extend([center_image, left_image, right_image, center_image_flipped, left_image_flipped, right_image_flipped])
+                angles.extend([center_angle, left_angle, right_angle, center_angle_flipped, left_angle_flipped, right_angle_flipped])
 
             X_train = np.array(images)
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
 # Create the complete set of test samples from a set of CSV data acquisition files
-test_cases = ['data/baseline_2laps/']
+test_cases = ['data/baseline_2laps/', 'data/extra_corners/', 'data/recovery/', 'data/recovery2/', 'data/recovery3/']
 test_samples = []
 for test_case in test_cases:
     with open(test_case + 'driving_log.csv') as csvfile:
@@ -57,8 +63,8 @@ for test_case in test_cases:
 
 # Create training and validation sets and create generators that iterates through each sets
 train_samples, validation_samples = train_test_split(test_samples, test_size=0.2)
-train_generator = generator(train_samples, batch_size=32)
-validation_generator = generator(validation_samples, batch_size=32)
+train_generator = generator(train_samples, steer_correction=0.5, batch_size=32)
+validation_generator = generator(validation_samples, steer_correction=0.5, batch_size=32)
 
 # Setup model
 model = Sequential()
