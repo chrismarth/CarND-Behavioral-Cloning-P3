@@ -1,6 +1,6 @@
-#**Behavioral Cloning** 
+# Behavioral Cloning
 
-###Behavioral Cloning Project
+### Behavioral Cloning Project
 
 The goals of this project were the following:
 * Use a simulator to collect data of good driving behavior
@@ -17,7 +17,7 @@ The goals of this project were the following:
 [flipped_after]: ./examples/flipped_after.jpg "Flipped Image"
 [loss_plot]: ./lossPlot.jpg "Mean Squared Error Plot"
 
-###Files Included in this project 
+### Files Included in this project 
 
 Beyond this writeup, the following files are part of this project submission:
 * *model.py* Contains the script to create and train the model
@@ -35,9 +35,9 @@ The *model.py* file contains the code for training and saving the neural network
 python model.py
 ```
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. Design Approach and Model Architecture
+#### 1. Design Approach and Model Architecture
 
 The final model architecture employed in this project is very similar to the Nvidia architecture described in the paper [End to End Learning for Self-Driving Cars](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf) and is summarized in the following table:
 
@@ -72,7 +72,7 @@ Regardless of the architecture, model training was performed by splitting the tr
 
 ![alt text][loss_plot]
 
-####2. Model parameter tuning
+#### 2. Model parameter tuning
 
 The model parameters that were considered for tuning are shown in the following table, along with their final tuned values.
 
@@ -84,7 +84,7 @@ The model parameters that were considered for tuning are shown in the following 
 
 Of these parameters, the only one which was explored in any great detail was the steer angle offset. This value was the difference in steering angle that was applied to the left and right camera images. Without knowing the geometry of the vehicle it is impossible to know what the exact value for this parameter should have been. Thus, different values were tried. Subjectively, it seemed that as this value became larger, the vehicle was able to stay centered within the lane better. However, if the value was made too large, the steering seemed to become too 'jerky' - as if someone was 'sawing' on the steering wheel. Thus, the final value chosen here provided the best compromise between these extremes.
 
-####3. Creation of the Training Set & Training Process
+#### 3. Creation of the Training Set & Training Process
 
 The training process was an iterative process, where a baseline training set was first created then augmented based on deficiencies in model performance.
 
