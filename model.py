@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Cropping2D, Dense, Flatten, Lambda, Conv2D
 from keras.optimizers import Adam
@@ -13,13 +12,13 @@ import math
 
 def generator(samples, steer_correction=0.2, batch_size=32):
     """
-    Given a set of samples and a batch size, return an iterator that returns a 2-tuple of numpy arrays with the first
-    value in the tuple being the input image and the second value the label
+    Given a set of samples, steer correction for left/right cameras, and a batch size, return an iterator that returns
+    a 2-tuple of numpy arrays with the first value in the tuple being the input image and the second value the steer angle
     
     :param samples: The total number of test samples
-    :param steer_correction: 
-    :param batch_size: The size of the sample batch that the iterator will return
-    :return: An iterator that on iteration returns a 2-tuple of numpy arrays containing input data and label
+    :param steer_correction: The steering correction to add to the left camera or subtract from the right camera
+    :param batch_size: The size of the sample batch that the iterator returns
+    :return: An iterator that on iteration returns a 2-tuple of numpy arrays containing input data and steer angle
     """
     num_samples = len(samples)
     while 1: # Loop forever so the generator never terminates
@@ -40,7 +39,7 @@ def generator(samples, steer_correction=0.2, batch_size=32):
                 right_angle = center_angle - steer_correction
                 images.extend([center_image, left_image, right_image])
                 angles.extend([center_angle, left_angle, right_angle])
-                if batch_sample[8]:
+                if batch_sample[8]:                                     # Should we flip the images?
                     center_image_flipped = np.fliplr(center_image)
                     left_image_flipped = np.fliplr(left_image)
                     right_image_flipped = np.fliplr(right_image)
@@ -53,7 +52,8 @@ def generator(samples, steer_correction=0.2, batch_size=32):
             y_train = np.array(angles)
             yield shuffle(X_train, y_train)
 
-# Create the complete set of test samples from a set of CSV data acquisition files
+# Create the complete set of test samples from a set of CSV data acquisition files.
+# Each sample is a tuple. The first element is the directory of images and the second is True/False if we should flip
 test_cases = [('data/baseline_2laps/', True), ('data/extra_corners/', True), ('data/recovery/', True), ('data/recovery2/', False), ('data/recovery3/', False)]
 test_samples = []
 for test_case in test_cases:
@@ -75,11 +75,10 @@ validation_generator = generator(validation_samples, steer_correction=0.5, batch
 model = Sequential()
 
 # Pre-processing Layers
-model.add(Cropping2D(cropping=((60, 0), (0, 0)), input_shape=(160, 320, 3)))
-#model.add(Lambda(lambda x: tf.image.rgb_to_grayscale(x)))
-model.add(Lambda(lambda x: (x / 127.5) - 1.0))
+model.add(Cropping2D(cropping=((60, 0), (0, 0)), input_shape=(160, 320, 3)))    # Crops the top 70 pixels
+model.add(Lambda(lambda x: (x / 127.5) - 1.0))                                  # Normalize and center channel data
 
-# Network setup - meant to mimic the Nvidia architecture (not sure about activation functions)
+# Network setup - meant to mimic the Nvidia architecture
 model.add(Conv2D(24, 5, strides=2, activation="relu"))
 model.add(Conv2D(36, 5, strides=2, activation="relu"))
 model.add(Conv2D(48, 5, strides=2, activation="relu"))
@@ -92,8 +91,8 @@ model.add(Dense(10))
 model.add(Dense(1))
 
 # Run backpropagation
-adam = Adam(lr=0.001)
-model.compile(loss='mse', optimizer=adam)
+adam = Adam(lr=0.001)   # In case we need to tune the learning rate - we didn't need to do this
+model.compile(loss='mse', optimizer=adam)      # Use Mean-Squared Error and the ADAM optimizer
 model.fit_generator(train_generator, steps_per_epoch=math.floor(len(train_samples)/32), validation_data=validation_generator, validation_steps=math.floor(len(validation_samples)/32), epochs=5)
 
 # Save the model so we can use it drive the vehicle
